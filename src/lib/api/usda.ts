@@ -80,6 +80,7 @@ export async function searchUsda(query: string, pageSize = 20): Promise<FoodItem
   const res = await fetch(url.toString(), {
     next: { revalidate: 3600 },
     signal: AbortSignal.timeout(6000),
+    headers: { "User-Agent": "WeightJustAMinute/1.0 (personal calorie tracker)" },
   });
   if (!res.ok) {
     throw new Error(`USDA search failed with status ${res.status}`);
