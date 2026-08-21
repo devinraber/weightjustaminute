@@ -23,7 +23,7 @@ export default function DashboardPage() {
   }
 
   const calorieTarget = profile?.calorieTarget ?? 2000;
-  const macroTargets = profile?.macroTargets ?? defaultMacroTargets(calorieTarget);
+  const macroTargets = { ...defaultMacroTargets(calorieTarget), ...profile?.macroTargets };
   const totals = log?.totals ?? { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, sugarG: 0 };
 
   return (

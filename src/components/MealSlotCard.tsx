@@ -50,7 +50,7 @@ export default function MealSlotCard({ slot, entries, onAdd, onRemove }: MealSlo
                 <p className="text-xs text-slate-400">
                   {Math.round(entry.nutrition.calories)} kcal · P{Math.round(entry.nutrition.proteinG)}
                   g · C{Math.round(entry.nutrition.carbsG)}g · F{Math.round(entry.nutrition.fatG)}g · S
-                  {Math.round(entry.nutrition.sugarG)}g
+                  {Math.round(entry.nutrition.sugarG ?? 0)}g
                 </p>
               </div>
               <button
