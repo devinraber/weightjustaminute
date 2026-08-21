@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, runTransaction } from "firebase/firestore";
 import { getFirebaseDb } from "@/lib/firebase/client";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -55,35 +55,48 @@ export function useDailyLog(date: string = todayIso()) {
   const addEntry = useCallback(
     async (slot: MealSlot, entry: MealEntry) => {
       if (!user) return;
-      const base = log ?? emptyDailyLog(user.uid, date);
-      const meals = { ...base.meals, [slot]: [...base.meals[slot], entry] };
-      const updated: DailyLog = {
-        ...base,
-        meals,
-        totals: sumTotals(meals),
-        updatedAt: new Date().toISOString(),
-      };
-      await setDoc(doc(getFirebaseDb(), "users", user.uid, "dailyLogs", date), updated);
+      const ref = doc(getFirebaseDb(), "users", user.uid, "dailyLogs", date);
+      // Reads the latest server state inside the transaction (and retries on conflict)
+      // instead of trusting local React state, so rapid/concurrent adds never clobber
+      // each other - important when adding several AI photo-detected items in a row.
+      await runTransaction(getFirebaseDb(), async (transaction) => {
+        const snap = await transaction.get(ref);
+        const base = snap.exists() ? (snap.data() as DailyLog) : emptyDailyLog(user.uid, date);
+        const meals = { ...base.meals, [slot]: [...base.meals[slot], entry] };
+        const updated: DailyLog = {
+          ...base,
+          meals,
+          totals: sumTotals(meals),
+          updatedAt: new Date().toISOString(),
+        };
+        transaction.set(ref, updated);
+      });
     },
-    [user, log, date],
+    [user, date],
   );
 
   const removeEntry = useCallback(
     async (slot: MealSlot, entryId: string) => {
-      if (!user || !log) return;
-      const meals = {
-        ...log.meals,
-        [slot]: log.meals[slot].filter((e) => e.id !== entryId),
-      };
-      const updated: DailyLog = {
-        ...log,
-        meals,
-        totals: sumTotals(meals),
-        updatedAt: new Date().toISOString(),
-      };
-      await setDoc(doc(getFirebaseDb(), "users", user.uid, "dailyLogs", date), updated);
+      if (!user) return;
+      const ref = doc(getFirebaseDb(), "users", user.uid, "dailyLogs", date);
+      await runTransaction(getFirebaseDb(), async (transaction) => {
+        const snap = await transaction.get(ref);
+        if (!snap.exists()) return;
+        const base = snap.data() as DailyLog;
+        const meals = {
+          ...base.meals,
+          [slot]: base.meals[slot].filter((e) => e.id !== entryId),
+        };
+        const updated: DailyLog = {
+          ...base,
+          meals,
+          totals: sumTotals(meals),
+          updatedAt: new Date().toISOString(),
+        };
+        transaction.set(ref, updated);
+      });
     },
-    [user, log, date],
+    [user, date],
   );
 
   return { log, loading, addEntry, removeEntry };
