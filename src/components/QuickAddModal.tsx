@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { X, Search } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import type { FoodItem, MealEntry, MealSlot } from "@/lib/types";
-import { useAuth } from "@/context/AuthContext";
+import { useFoodSearch } from "@/hooks/useFoodSearch";
 
 interface QuickAddModalProps {
   slot: MealSlot;
@@ -22,7 +22,6 @@ function scaleNutrition(food: FoodItem, grams: number) {
 }
 
 export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalProps) {
-  const { user } = useAuth();
   const [tab, setTab] = useState<"quick" | "search">("quick");
 
   // Quick-add state
@@ -31,8 +30,7 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
 
   // Search state
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<FoodItem[]>([]);
-  const [searching, setSearching] = useState(false);
+  const { results, loading: searching } = useFoodSearch(query);
   const [selected, setSelected] = useState<FoodItem | null>(null);
   const [grams, setGrams] = useState("100");
 
@@ -47,21 +45,6 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
       source: "custom",
       loggedAt: new Date().toISOString(),
     });
-  }
-
-  async function handleSearch() {
-    if (!user || query.trim().length < 2) return;
-    setSearching(true);
-    try {
-      const token = await user.getIdToken();
-      const res = await fetch(`/api/food/search?q=${encodeURIComponent(query)}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setResults(data.results ?? []);
-    } finally {
-      setSearching(false);
-    }
   }
 
   async function handleAddSelected() {
@@ -128,24 +111,29 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <div className="flex gap-2">
+            <div className="relative">
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setSelected(null);
+                }}
                 placeholder="Search foods (e.g. chicken breast)"
-                className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                autoFocus
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
               />
-              <button
-                onClick={handleSearch}
-                disabled={searching}
-                className="rounded-lg bg-slate-100 px-3 text-slate-600 hover:bg-slate-200"
-              >
-                <Search size={16} />
-              </button>
+              {searching && (
+                <Loader2
+                  size={16}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-400"
+                />
+              )}
             </div>
 
             <div className="max-h-52 overflow-y-auto">
+              {results.length === 0 && query.trim().length >= 2 && !searching && (
+                <p className="px-3 py-4 text-center text-sm text-slate-400">No matches found.</p>
+              )}
               {results.map((food) => (
                 <button
                   key={food.id}

@@ -11,6 +11,15 @@ interface OffProduct {
   nutriments?: Record<string, number>;
 }
 
+// Allows English + common Western European accented letters, digits, and basic
+// punctuation. Anything with Cyrillic/CJK/Arabic/Thai/etc. characters is filtered
+// out so search results stay in a language the user can actually read.
+const LATIN_TEXT_PATTERN = /^[\x00-\x7F\u00C0-\u024F\u2018\u2019\u201C\u201D]+$/;
+
+function isReadableName(name: string): boolean {
+  return LATIN_TEXT_PATTERN.test(name);
+}
+
 function toNutritionPer100g(nutriments: Record<string, number> = {}): NutritionPer100g {
   return {
     calories: nutriments["energy-kcal_100g"] ?? 0,
@@ -52,21 +61,32 @@ export async function lookupBarcode(barcode: string): Promise<FoodItem | null> {
   return toFoodItem({ code: barcode, ...data.product });
 }
 
-/** Free-text search across packaged products. */
+/** Free-text search across packaged products, restricted to English and ranked by popularity. */
 export async function searchOpenFoodFacts(query: string, pageSize = 20): Promise<FoodItem[]> {
-  const url = new URL(`${OFF_BASE_URL}/cgi/search.pl`);
+  const url = new URL(`${OFF_BASE_URL}/api/v2/search`);
   url.searchParams.set("search_terms", query);
-  url.searchParams.set("search_simple", "1");
-  url.searchParams.set("action", "process");
-  url.searchParams.set("json", "1");
-  url.searchParams.set("page_size", String(pageSize));
+  url.searchParams.set("fields", "code,product_name,brands,image_url,serving_size,nutriments");
+  // English-language results only, ranked by how often the product is actually scanned.
+  url.searchParams.set("lc", "en");
+  url.searchParams.set("sort_by", "unique_scans_n");
+  // Over-fetch since we filter out unreadable/incomplete entries afterward.
+  url.searchParams.set("page_size", String(pageSize * 2));
 
-  const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
+  const res = await fetch(url.toString(), {
+    next: { revalidate: 3600 },
+    signal: AbortSignal.timeout(6000),
+  });
   if (!res.ok) return [];
 
   const data = await res.json();
   const products: OffProduct[] = data.products ?? [];
   return products
-    .filter((p) => p.product_name && p.nutriments?.["energy-kcal_100g"] != null)
+    .filter(
+      (p) =>
+        p.product_name &&
+        isReadableName(p.product_name) &&
+        p.nutriments?.["energy-kcal_100g"] != null,
+    )
+    .slice(0, pageSize)
     .map(toFoodItem);
 }

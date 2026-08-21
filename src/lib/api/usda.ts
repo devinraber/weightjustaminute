@@ -77,7 +77,10 @@ export async function searchUsda(query: string, pageSize = 20): Promise<FoodItem
   // Prefer raw/whole-food data over branded/processed entries, which OFF already covers.
   url.searchParams.set("dataType", "Foundation,SR Legacy,Survey (FNDDS)");
 
-  const res = await fetch(url.toString(), { next: { revalidate: 3600 } });
+  const res = await fetch(url.toString(), {
+    next: { revalidate: 3600 },
+    signal: AbortSignal.timeout(6000),
+  });
   if (!res.ok) {
     throw new Error(`USDA search failed with status ${res.status}`);
   }

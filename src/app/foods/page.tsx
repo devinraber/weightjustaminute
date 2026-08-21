@@ -4,34 +4,18 @@ export const dynamic = "force-dynamic";
 
 import { useState } from "react";
 import { addDoc, collection } from "firebase/firestore";
-import { Search, Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { getFirebaseDb } from "@/lib/firebase/client";
 import { useAuth } from "@/context/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import type { FoodItem } from "@/lib/types";
+import { useFoodSearch } from "@/hooks/useFoodSearch";
 
 export default function FoodsPage() {
   const { user } = useAuth();
   const { profile } = useUserProfile();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<FoodItem[]>([]);
-  const [searching, setSearching] = useState(false);
+  const { results, loading: searching } = useFoodSearch(query);
   const [showBuilder, setShowBuilder] = useState(false);
-
-  async function handleSearch() {
-    if (!user || query.trim().length < 2) return;
-    setSearching(true);
-    try {
-      const token = await user.getIdToken();
-      const res = await fetch(`/api/food/search?q=${encodeURIComponent(query)}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setResults(data.results ?? []);
-    } finally {
-      setSearching(false);
-    }
-  }
 
   if (!user) {
     return <p className="text-center text-slate-400">Sign in to search foods.</p>;
@@ -49,21 +33,19 @@ export default function FoodsPage() {
         </button>
       </header>
 
-      <div className="flex gap-2">
+      <div className="relative">
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
           placeholder="Search packaged & whole foods"
-          className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
         />
-        <button
-          onClick={handleSearch}
-          disabled={searching}
-          className="rounded-lg bg-slate-100 px-3 text-slate-600 hover:bg-slate-200"
-        >
-          <Search size={16} />
-        </button>
+        {searching && (
+          <Loader2
+            size={16}
+            className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-400"
+          />
+        )}
       </div>
 
       <ul className="flex flex-col divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
@@ -79,10 +61,13 @@ export default function FoodsPage() {
             </div>
           </li>
         ))}
-        {results.length === 0 && (
+        {results.length === 0 && query.trim().length < 2 && (
           <li className="px-4 py-6 text-center text-sm text-slate-400">
             Search for a food to see results.
           </li>
+        )}
+        {results.length === 0 && query.trim().length >= 2 && !searching && (
+          <li className="px-4 py-6 text-center text-sm text-slate-400">No matches found.</li>
         )}
       </ul>
 

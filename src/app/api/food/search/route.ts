@@ -2,6 +2,19 @@ import { NextResponse } from "next/server";
 import { verifyRequestAuth } from "@/lib/firebase/admin";
 import { lookupBarcode, searchOpenFoodFacts } from "@/lib/api/openFoodFacts";
 import { searchUsda } from "@/lib/api/usda";
+import type { FoodItem } from "@/lib/types";
+
+/** Ranks results so exact/prefix name matches for the query surface first. */
+function relevanceScore(food: FoodItem, queryLower: string): number {
+  const nameLower = food.name.toLowerCase();
+  let score = 0;
+  if (nameLower === queryLower) score += 100;
+  else if (nameLower.startsWith(queryLower)) score += 60;
+  else if (nameLower.includes(queryLower)) score += 30;
+  // Shorter, plainer names are usually the more "generic"/likely match for a query.
+  score -= nameLower.length * 0.1;
+  return score;
+}
 
 /**
  * GET /api/food/search?q=chicken breast&barcode=0123456789012
@@ -37,5 +50,8 @@ export async function GET(request: Request) {
     ...(usdaResults.status === "fulfilled" ? usdaResults.value : []),
   ];
 
-  return NextResponse.json({ results });
+  const queryLower = query.trim().toLowerCase();
+  results.sort((a, b) => relevanceScore(b, queryLower) - relevanceScore(a, queryLower));
+
+  return NextResponse.json({ results: results.slice(0, 25) });
 }
