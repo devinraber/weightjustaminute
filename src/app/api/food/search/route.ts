@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { verifyRequestAuth } from "@/lib/firebase/admin";
 import { lookupBarcode, searchOpenFoodFacts } from "@/lib/api/openFoodFacts";
-import { searchUsda } from "@/lib/api/usda";
 import { searchCuratedFoods } from "@/lib/data/commonFoods";
+import { searchBulkUsdaFoods } from "@/lib/data/usdaBulkFoods";
 import type { FoodItem } from "@/lib/types";
 
 /** Ranks results so exact/prefix name matches for the query surface first. */
@@ -46,19 +46,13 @@ export async function GET(request: Request) {
   }
 
   const curatedResults = searchCuratedFoods(query);
-  const [offResults, usdaResults] = await Promise.allSettled([
-    searchOpenFoodFacts(query),
-    searchUsda(query),
-  ]);
+  const bulkUsdaResults = searchBulkUsdaFoods(query);
+  const offResults = await searchOpenFoodFacts(query).catch(() => []);
 
-  const results = [
-    ...curatedResults,
-    ...(offResults.status === "fulfilled" ? offResults.value : []),
-    ...(usdaResults.status === "fulfilled" ? usdaResults.value : []),
-  ];
+  const results = [...curatedResults, ...bulkUsdaResults, ...offResults];
 
   const queryLower = query.trim().toLowerCase();
   results.sort((a, b) => relevanceScore(b, queryLower) - relevanceScore(a, queryLower));
 
-  return NextResponse.json({ results: results.slice(0, 25) });
+  return NextResponse.json({ results: results.slice(0, 30) });
 }
