@@ -56,7 +56,9 @@ export function calorieTargetFromGoalDate(params: {
   );
   const totalKcalDelta = (targetWeightKg - currentWeightKg) * KCAL_PER_KG;
   const dailyDelta = totalKcalDelta / daysRemaining;
-  return Math.round(tdee + dailyDelta);
+  // Never recommend an unsafe crash-diet calorie level, regardless of how aggressive the goal date is.
+  const MIN_SAFE_CALORIES = 1200;
+  return Math.max(MIN_SAFE_CALORIES, Math.round(tdee + dailyDelta));
 }
 
 /** Default macro split: 30% protein, 40% carbs, 30% fat (4 kcal/g protein & carbs, 9 kcal/g fat). */

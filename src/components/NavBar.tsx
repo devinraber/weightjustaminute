@@ -14,7 +14,7 @@ const TABS = [
 export default function NavBar() {
   const pathname = usePathname();
 
-  if (pathname === "/login") return null;
+  if (pathname === "/login" || pathname === "/onboarding") return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white/95 backdrop-blur">
