@@ -3,6 +3,7 @@ import { verifyRequestAuth } from "@/lib/firebase/admin";
 import { lookupBarcode, searchOpenFoodFacts } from "@/lib/api/openFoodFacts";
 import { searchCuratedFoods } from "@/lib/data/commonFoods";
 import { searchBulkUsdaFoods } from "@/lib/data/usdaBulkFoods";
+import { searchRestaurantFoods } from "@/lib/data/restaurantFoods";
 import type { FoodItem } from "@/lib/types";
 
 /** Ranks results so exact/prefix name matches for the query surface first. */
@@ -47,9 +48,10 @@ export async function GET(request: Request) {
 
   const curatedResults = searchCuratedFoods(query);
   const bulkUsdaResults = searchBulkUsdaFoods(query);
+  const restaurantResults = searchRestaurantFoods(query);
   const offResults = await searchOpenFoodFacts(query).catch(() => []);
 
-  const results = [...curatedResults, ...bulkUsdaResults, ...offResults];
+  const results = [...curatedResults, ...restaurantResults, ...bulkUsdaResults, ...offResults];
 
   const queryLower = query.trim().toLowerCase();
   results.sort((a, b) => relevanceScore(b, queryLower) - relevanceScore(a, queryLower));
