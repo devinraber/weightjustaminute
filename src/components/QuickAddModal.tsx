@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
+import { addDoc, collection } from "firebase/firestore";
+import { getFirebaseDb } from "@/lib/firebase/client";
+import { useAuth } from "@/context/AuthContext";
 import type { FoodItem, MealEntry, MealSlot } from "@/lib/types";
 import { useFoodSearch } from "@/hooks/useFoodSearch";
 
@@ -23,11 +26,13 @@ function scaleNutrition(food: FoodItem, grams: number) {
 }
 
 export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalProps) {
+  const { user } = useAuth();
   const [tab, setTab] = useState<"quick" | "search">("quick");
 
   // Quick-add state
   const [name, setName] = useState("");
   const [calories, setCalories] = useState("");
+  const [saveForNextTime, setSaveForNextTime] = useState(true);
 
   // Search state
   const [query, setQuery] = useState("");
@@ -38,6 +43,22 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
   async function handleQuickAdd() {
     const kcal = Number(calories);
     if (!name.trim() || !Number.isFinite(kcal) || kcal <= 0) return;
+
+    if (saveForNextTime && user) {
+      // Store as a reusable custom food so it shows up in future searches.
+      const now = new Date().toISOString();
+      await addDoc(collection(getFirebaseDb(), "foods"), {
+        source: "custom",
+        name: name.trim(),
+        nutritionPer100g: { calories: kcal, proteinG: 0, carbsG: 0, fatG: 0, sugarG: 0 },
+        servingLabel: "1 item",
+        createdByUid: user.uid,
+        sharedWithUids: [],
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
     await onAdd({
       id: crypto.randomUUID(),
       name: name.trim(),
@@ -103,6 +124,14 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
               type="number"
               className="rounded-lg border border-slate-200 px-3 py-2 text-sm"
             />
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <input
+                type="checkbox"
+                checked={saveForNextTime}
+                onChange={(e) => setSaveForNextTime(e.target.checked)}
+              />
+              Save for next time (appears in Search next time)
+            </label>
             <button
               onClick={handleQuickAdd}
               className="rounded-lg bg-brand-600 py-2 text-sm font-medium text-white hover:bg-brand-700"
