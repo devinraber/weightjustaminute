@@ -55,7 +55,7 @@ export default function FoodsPage() {
               <p className="font-medium">{food.name}</p>
               <p className="text-xs text-slate-400">
                 {food.brand ? `${food.brand} · ` : ""}
-                {food.source === "usda" ? "USDA" : "Open Food Facts"} ·{" "}
+                {food.source === "usda" ? "USDA" : food.source === "curated" ? "Common food" : "Open Food Facts"} ·{" "}
                 {Math.round(food.nutritionPer100g.calories)} kcal/100g
               </p>
             </div>

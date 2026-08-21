@@ -95,7 +95,7 @@ export interface WeightTrendPoint {
 // Food database
 // ---------------------------------------------------------------------------
 
-export type FoodSource = "openfoodfacts" | "usda" | "custom" | "ai_estimate";
+export type FoodSource = "openfoodfacts" | "usda" | "custom" | "ai_estimate" | "curated";
 
 /** Normalized nutrition, always per 100g so items from different sources are comparable */
 export interface NutritionPer100g {
