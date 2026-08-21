@@ -20,6 +20,14 @@ function isReadableName(name: string): boolean {
   return LATIN_TEXT_PATTERN.test(name);
 }
 
+const STOPWORDS = new Set(["the", "and", "for", "with", "of"]);
+
+/** Guards against the search index falling back to unrelated/global results. */
+function matchesQuery(name: string, queryWords: string[]): boolean {
+  const nameLower = name.toLowerCase();
+  return queryWords.some((word) => nameLower.includes(word));
+}
+
 function toNutritionPer100g(nutriments: Record<string, number> = {}): NutritionPer100g {
   return {
     calories: nutriments["energy-kcal_100g"] ?? 0,
@@ -61,16 +69,26 @@ export async function lookupBarcode(barcode: string): Promise<FoodItem | null> {
   return toFoodItem({ code: barcode, ...data.product });
 }
 
-/** Free-text search across packaged products, restricted to English and ranked by popularity. */
+/** Free-text search across packaged products, restricted to English/US and ranked by popularity. */
 export async function searchOpenFoodFacts(query: string, pageSize = 20): Promise<FoodItem[]> {
-  const url = new URL(`${OFF_BASE_URL}/api/v2/search`);
+  // The legacy cgi/search.pl endpoint does real full-text matching on search_terms;
+  // the newer v2/search endpoint is tag/structured-query only and silently falls
+  // back to an unfiltered global result set for free text, which is why unrelated
+  // French/Moroccan products were showing up for queries like "chicken".
+  const url = new URL(`${OFF_BASE_URL}/cgi/search.pl`);
   url.searchParams.set("search_terms", query);
-  url.searchParams.set("fields", "code,product_name,brands,image_url,serving_size,nutriments");
-  // English-language results only, ranked by how often the product is actually scanned.
+  url.searchParams.set("search_simple", "1");
+  url.searchParams.set("action", "process");
+  url.searchParams.set("json", "1");
+  // Scope to English-language, US-sold products.
   url.searchParams.set("lc", "en");
+  url.searchParams.set("cc", "us");
+  url.searchParams.set("tagtype_0", "countries");
+  url.searchParams.set("tag_contains_0", "contains");
+  url.searchParams.set("tag_0", "united-states");
   url.searchParams.set("sort_by", "unique_scans_n");
-  // Over-fetch since we filter out unreadable/incomplete entries afterward.
-  url.searchParams.set("page_size", String(pageSize * 2));
+  // Over-fetch since we filter out unreadable/irrelevant/incomplete entries afterward.
+  url.searchParams.set("page_size", String(pageSize * 3));
 
   const res = await fetch(url.toString(), {
     next: { revalidate: 3600 },
@@ -80,12 +98,18 @@ export async function searchOpenFoodFacts(query: string, pageSize = 20): Promise
 
   const data = await res.json();
   const products: OffProduct[] = data.products ?? [];
+  const queryWords = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => word.length >= 3 && !STOPWORDS.has(word));
+
   return products
     .filter(
       (p) =>
         p.product_name &&
         isReadableName(p.product_name) &&
-        p.nutriments?.["energy-kcal_100g"] != null,
+        p.nutriments?.["energy-kcal_100g"] != null &&
+        (queryWords.length === 0 || matchesQuery(p.product_name, queryWords)),
     )
     .slice(0, pageSize)
     .map(toFoodItem);
