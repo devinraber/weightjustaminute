@@ -98,7 +98,7 @@ export default function OnboardingPage() {
         uid: user.uid,
         email: user.email ?? "",
         displayName: user.displayName ?? "",
-        photoURL: user.photoURL ?? undefined,
+        ...(user.photoURL ? { photoURL: user.photoURL } : {}),
         sex,
         birthYear,
         heightCm: Math.round(resolvedHeightCm),
@@ -106,7 +106,7 @@ export default function OnboardingPage() {
         startingWeightKg: resolvedStartWeightKg,
         startingWeightDate: todayIso(),
         targetWeightKg: resolvedTargetWeightKg,
-        targetDate: targetDate || undefined,
+        ...(targetDate ? { targetDate } : {}),
         goalDirection,
         calorieTarget,
         macroTargets: defaultMacroTargets(calorieTarget),
@@ -129,7 +129,8 @@ export default function OnboardingPage() {
       });
 
       router.replace("/");
-    } catch {
+    } catch (err) {
+      console.error("Failed to save onboarding profile", err);
       setError("Something went wrong saving your profile. Please try again.");
     } finally {
       setSaving(false);
