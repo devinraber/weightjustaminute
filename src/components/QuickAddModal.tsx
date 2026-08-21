@@ -7,6 +7,7 @@ import { getFirebaseDb } from "@/lib/firebase/client";
 import { useAuth } from "@/context/AuthContext";
 import type { FoodItem, MealEntry, MealSlot } from "@/lib/types";
 import { useFoodSearch } from "@/hooks/useFoodSearch";
+import { buildServingOptions, getServingUnit } from "@/lib/utils/servingUnits";
 
 interface QuickAddModalProps {
   slot: MealSlot;
@@ -38,7 +39,9 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
   const [query, setQuery] = useState("");
   const { results, loading: searching } = useFoodSearch(query);
   const [selected, setSelected] = useState<FoodItem | null>(null);
-  const [grams, setGrams] = useState("100");
+  const [selectedGrams, setSelectedGrams] = useState<number | null>(null);
+  const [showCustomGrams, setShowCustomGrams] = useState(false);
+  const [customGrams, setCustomGrams] = useState("");
 
   async function handleQuickAdd() {
     const kcal = Number(calories);
@@ -71,8 +74,8 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
 
   async function handleAddSelected() {
     if (!selected) return;
-    const gramsNum = Number(grams);
-    if (!Number.isFinite(gramsNum) || gramsNum <= 0) return;
+    const gramsNum = showCustomGrams ? Number(customGrams) : selectedGrams;
+    if (!gramsNum || !Number.isFinite(gramsNum) || gramsNum <= 0) return;
     await onAdd({
       id: crypto.randomUUID(),
       foodId: selected.id,
@@ -167,7 +170,13 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
               {results.map((food) => (
                 <button
                   key={food.id}
-                  onClick={() => setSelected(food)}
+                  onClick={() => {
+                    setSelected(food);
+                    const options = buildServingOptions(getServingUnit(food));
+                    setSelectedGrams(options[4]?.grams ?? options[0]?.grams ?? 100); // default to "1x" option
+                    setShowCustomGrams(false);
+                    setCustomGrams("");
+                  }}
                   className={`flex w-full flex-col items-start rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50 ${
                     selected?.id === food.id ? "bg-brand-50" : ""
                   }`}
@@ -182,17 +191,51 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
             </div>
 
             {selected && (
-              <div className="flex items-center gap-2">
-                <input
-                  value={grams}
-                  onChange={(e) => setGrams(e.target.value)}
-                  type="number"
-                  className="w-24 rounded-lg border border-slate-200 px-3 py-2 text-sm"
-                />
-                <span className="text-sm text-slate-500">grams</span>
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-medium text-slate-500">How much did you have?</p>
+                <div className="flex flex-wrap gap-2">
+                  {buildServingOptions(getServingUnit(selected)).map((opt) => (
+                    <button
+                      key={opt.label}
+                      onClick={() => {
+                        setSelectedGrams(opt.grams);
+                        setShowCustomGrams(false);
+                      }}
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+                        !showCustomGrams && selectedGrams === opt.grams
+                          ? "border-brand-500 bg-brand-50 text-brand-700"
+                          : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setShowCustomGrams(true)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+                      showCustomGrams
+                        ? "border-brand-500 bg-brand-50 text-brand-700"
+                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    Enter grams
+                  </button>
+                </div>
+
+                {showCustomGrams && (
+                  <input
+                    value={customGrams}
+                    onChange={(e) => setCustomGrams(e.target.value)}
+                    type="number"
+                    placeholder="Grams"
+                    autoFocus
+                    className="w-28 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                  />
+                )}
+
                 <button
                   onClick={handleAddSelected}
-                  className="ml-auto rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                  className="rounded-lg bg-brand-600 py-2 text-sm font-medium text-white hover:bg-brand-700"
                 >
                   Add
                 </button>

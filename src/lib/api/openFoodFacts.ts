@@ -8,6 +8,7 @@ interface OffProduct {
   brands?: string;
   image_url?: string;
   serving_size?: string;
+  serving_quantity?: number;
   nutriments?: Record<string, number>;
 }
 
@@ -46,6 +47,7 @@ function toFoodItem(product: OffProduct): FoodItem {
     brand: product.brands,
     imageUrl: product.image_url,
     servingLabel: product.serving_size,
+    servingSizeG: product.serving_quantity,
     nutritionPer100g: toNutritionPer100g(product.nutriments),
     createdAt: now,
     updatedAt: now,

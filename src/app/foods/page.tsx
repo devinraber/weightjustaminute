@@ -97,6 +97,8 @@ function CustomFoodBuilder({
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
   const [sugar, setSugar] = useState("");
+  const [servingLabel, setServingLabel] = useState("");
+  const [servingSizeG, setServingSizeG] = useState("");
   const [shareWithConnections, setShareWithConnections] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -115,6 +117,9 @@ function CustomFoodBuilder({
           fatG: Number(fat) || 0,
           sugarG: Number(sugar) || 0,
         },
+        ...(servingLabel.trim() && Number(servingSizeG) > 0
+          ? { servingLabel: servingLabel.trim(), servingSizeG: Number(servingSizeG) }
+          : {}),
         createdByUid: uid,
         sharedWithUids: shareWithConnections ? connections : [],
         createdAt: now,
@@ -144,6 +149,11 @@ function CustomFoodBuilder({
             <input value={carbs} onChange={(e) => setCarbs(e.target.value)} type="number" placeholder="Carbs (g)" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             <input value={fat} onChange={(e) => setFat(e.target.value)} type="number" placeholder="Fat (g)" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             <input value={sugar} onChange={(e) => setSugar(e.target.value)} type="number" placeholder="Sugar (g)" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+          </div>
+          <p className="text-xs text-slate-400">Optional: define a serving so it&apos;s easier to log later (e.g. &quot;cup&quot; = 240g):</p>
+          <div className="grid grid-cols-2 gap-2">
+            <input value={servingLabel} onChange={(e) => setServingLabel(e.target.value)} placeholder="Serving name (e.g. cup)" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <input value={servingSizeG} onChange={(e) => setServingSizeG(e.target.value)} type="number" placeholder="Grams per serving" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-600">
             <input
