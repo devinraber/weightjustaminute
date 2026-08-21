@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Barcode } from "lucide-react";
+import dynamic from "next/dynamic";
 import { addDoc, collection } from "firebase/firestore";
 import { getFirebaseDb } from "@/lib/firebase/client";
 import { useAuth } from "@/context/AuthContext";
 import type { FoodItem, MealEntry, MealSlot } from "@/lib/types";
 import { useFoodSearch } from "@/hooks/useFoodSearch";
 import { buildServingOptions, getServingUnit } from "@/lib/utils/servingUnits";
+
+// The barcode decoder library is large - only load it when the scanner is actually opened.
+const BarcodeScannerModal = dynamic(() => import("@/components/BarcodeScannerModal"), { ssr: false });
 
 interface QuickAddModalProps {
   slot: MealSlot;
@@ -42,6 +46,43 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
   const [selectedGrams, setSelectedGrams] = useState<number | null>(null);
   const [showCustomGrams, setShowCustomGrams] = useState(false);
   const [customGrams, setCustomGrams] = useState("");
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+
+  function selectFood(food: FoodItem) {
+    setSelected(food);
+    const options = buildServingOptions(getServingUnit(food));
+    setSelectedGrams(options[4]?.grams ?? options[0]?.grams ?? 100); // default to "1x" option
+    setShowCustomGrams(false);
+    setCustomGrams("");
+  }
+
+  async function handleBarcodeDetected(barcode: string) {
+    setShowScanner(false);
+    if (!user) return;
+    setScanning(true);
+    setScanError(null);
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`/api/food/search?barcode=${encodeURIComponent(barcode)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      const food: FoodItem | undefined = data.results?.[0];
+      if (!food) {
+        setScanError(`No product found for barcode ${barcode}.`);
+        return;
+      }
+      setTab("search");
+      setQuery(food.name);
+      selectFood(food);
+    } catch {
+      setScanError("Couldn't look up that barcode. Please try again.");
+    } finally {
+      setScanning(false);
+    }
+  }
 
   async function handleQuickAdd() {
     const kcal = Number(calories);
@@ -144,24 +185,35 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <div className="relative">
-              <input
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setSelected(null);
-                }}
-                placeholder="Search foods (e.g. chicken breast)"
-                autoFocus
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-              />
-              {searching && (
-                <Loader2
-                  size={16}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-400"
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setSelected(null);
+                  }}
+                  placeholder="Search foods (e.g. chicken breast)"
+                  autoFocus
+                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
                 />
-              )}
+                {(searching || scanning) && (
+                  <Loader2
+                    size={16}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-slate-400"
+                  />
+                )}
+              </div>
+              <button
+                onClick={() => setShowScanner(true)}
+                aria-label="Scan barcode"
+                className="rounded-lg bg-slate-100 px-3 text-slate-600 hover:bg-slate-200"
+              >
+                <Barcode size={18} />
+              </button>
             </div>
+
+            {scanError && <p className="text-xs text-red-500">{scanError}</p>}
 
             <div className="max-h-52 overflow-y-auto">
               {results.length === 0 && query.trim().length >= 2 && !searching && (
@@ -170,13 +222,7 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
               {results.map((food) => (
                 <button
                   key={food.id}
-                  onClick={() => {
-                    setSelected(food);
-                    const options = buildServingOptions(getServingUnit(food));
-                    setSelectedGrams(options[4]?.grams ?? options[0]?.grams ?? 100); // default to "1x" option
-                    setShowCustomGrams(false);
-                    setCustomGrams("");
-                  }}
+                  onClick={() => selectFood(food)}
                   className={`flex w-full flex-col items-start rounded-lg px-3 py-2 text-left text-sm hover:bg-slate-50 ${
                     selected?.id === food.id ? "bg-brand-50" : ""
                   }`}
@@ -244,6 +290,10 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
           </div>
         )}
       </div>
+
+      {showScanner && (
+        <BarcodeScannerModal onDetected={handleBarcodeDetected} onClose={() => setShowScanner(false)} />
+      )}
     </div>
   );
 }
