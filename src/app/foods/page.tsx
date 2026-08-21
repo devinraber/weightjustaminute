@@ -96,6 +96,7 @@ function CustomFoodBuilder({
   const [protein, setProtein] = useState("");
   const [carbs, setCarbs] = useState("");
   const [fat, setFat] = useState("");
+  const [sugar, setSugar] = useState("");
   const [shareWithConnections, setShareWithConnections] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -112,6 +113,7 @@ function CustomFoodBuilder({
           proteinG: Number(protein) || 0,
           carbsG: Number(carbs) || 0,
           fatG: Number(fat) || 0,
+          sugarG: Number(sugar) || 0,
         },
         createdByUid: uid,
         sharedWithUids: shareWithConnections ? connections : [],
@@ -141,6 +143,7 @@ function CustomFoodBuilder({
             <input value={protein} onChange={(e) => setProtein(e.target.value)} type="number" placeholder="Protein (g)" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             <input value={carbs} onChange={(e) => setCarbs(e.target.value)} type="number" placeholder="Carbs (g)" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
             <input value={fat} onChange={(e) => setFat(e.target.value)} type="number" placeholder="Fat (g)" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <input value={sugar} onChange={(e) => setSugar(e.target.value)} type="number" placeholder="Sugar (g)" className="rounded-lg border border-slate-200 px-3 py-2 text-sm" />
           </div>
           <label className="flex items-center gap-2 text-sm text-slate-600">
             <input

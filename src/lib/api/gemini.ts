@@ -26,9 +26,10 @@ const RESPONSE_SCHEMA = {
           proteinG: { type: Type.NUMBER },
           carbsG: { type: Type.NUMBER },
           fatG: { type: Type.NUMBER },
+          sugarG: { type: Type.NUMBER },
           confidence: { type: Type.STRING, enum: ["low", "medium", "high"] },
         },
-        required: ["name", "estimatedGrams", "calories", "proteinG", "carbsG", "fatG", "confidence"],
+        required: ["name", "estimatedGrams", "calories", "proteinG", "carbsG", "fatG", "sugarG", "confidence"],
       },
     },
     disclaimer: { type: Type.STRING },
@@ -39,7 +40,7 @@ const RESPONSE_SCHEMA = {
 const PROMPT = `You are a nutrition estimation assistant. Analyze the meal photo and identify
 each distinct food item visible. For each item, estimate:
 - the portion weight in grams, based on typical plate/utensil scale references in the photo
-- calories, protein (g), carbs (g), and fat (g) for that estimated portion
+- calories, protein (g), carbs (g), fat (g), and sugar (g) for that estimated portion
 - your confidence in the estimate ("low", "medium", or "high")
 
 Only include foods you can actually see. Be conservative with portion sizes. Return your

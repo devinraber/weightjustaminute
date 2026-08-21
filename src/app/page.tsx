@@ -24,7 +24,7 @@ export default function DashboardPage() {
 
   const calorieTarget = profile?.calorieTarget ?? 2000;
   const macroTargets = profile?.macroTargets ?? defaultMacroTargets(calorieTarget);
-  const totals = log?.totals ?? { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 };
+  const totals = log?.totals ?? { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, sugarG: 0 };
 
   return (
     <div className="flex flex-col gap-6">
@@ -34,11 +34,12 @@ export default function DashboardPage() {
         </h1>
       </header>
 
-      <section className="grid grid-cols-2 gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-4">
+      <section className="grid grid-cols-2 gap-4 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-5">
         <CalorieRing label="Calories" consumed={totals.calories} target={calorieTarget} colorClass="text-brand-500" />
         <CalorieRing label="Protein" consumed={totals.proteinG} target={macroTargets.proteinG} unit="g" colorClass="text-rose-500" />
         <CalorieRing label="Carbs" consumed={totals.carbsG} target={macroTargets.carbsG} unit="g" colorClass="text-amber-500" />
         <CalorieRing label="Fat" consumed={totals.fatG} target={macroTargets.fatG} unit="g" colorClass="text-sky-500" />
+        <CalorieRing label="Sugar" consumed={totals.sugarG} target={macroTargets.sugarG} unit="g" colorClass="text-purple-500" />
       </section>
 
       <section className="flex flex-col gap-3">

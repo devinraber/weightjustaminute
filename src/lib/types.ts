@@ -56,6 +56,7 @@ export interface MacroTargets {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sugarG: number;
 }
 
 /** Document at /connectionInvites/{inviteId} - used to link two accounts for shared library */
@@ -160,6 +161,7 @@ export interface NutritionPer100gScaled {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sugarG: number;
 }
 
 /** Document at /users/{uid}/dailyLogs/{dateISO} - doc id = yyyy-MM-dd */
@@ -179,7 +181,7 @@ export function emptyDailyLog(uid: string, date: string): DailyLog {
     uid,
     date,
     meals: { breakfast: [], lunch: [], dinner: [], snacks: [] },
-    totals: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+    totals: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, sugarG: 0 },
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -203,5 +205,6 @@ export interface AiFoodEstimateItem {
   proteinG: number;
   carbsG: number;
   fatG: number;
+  sugarG: number;
   confidence: "low" | "medium" | "high";
 }

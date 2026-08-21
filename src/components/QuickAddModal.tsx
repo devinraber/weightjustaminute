@@ -18,6 +18,7 @@ function scaleNutrition(food: FoodItem, grams: number) {
     proteinG: food.nutritionPer100g.proteinG * factor,
     carbsG: food.nutritionPer100g.carbsG * factor,
     fatG: food.nutritionPer100g.fatG * factor,
+    sugarG: (food.nutritionPer100g.sugarG ?? 0) * factor,
   };
 }
 
@@ -41,7 +42,7 @@ export default function QuickAddModal({ slot, onClose, onAdd }: QuickAddModalPro
       id: crypto.randomUUID(),
       name: name.trim(),
       quickAddCalories: kcal,
-      nutrition: { calories: kcal, proteinG: 0, carbsG: 0, fatG: 0 },
+      nutrition: { calories: kcal, proteinG: 0, carbsG: 0, fatG: 0, sugarG: 0 },
       source: "custom",
       loggedAt: new Date().toISOString(),
     });

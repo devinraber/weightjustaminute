@@ -65,5 +65,7 @@ export function defaultMacroTargets(calorieTarget: number): MacroTargets {
     proteinG: Math.round((calorieTarget * 0.3) / 4),
     carbsG: Math.round((calorieTarget * 0.4) / 4),
     fatG: Math.round((calorieTarget * 0.3) / 9),
+    // WHO guidance: keep added sugar under ~10% of total calories (4 kcal/g).
+    sugarG: Math.round((calorieTarget * 0.1) / 4),
   };
 }

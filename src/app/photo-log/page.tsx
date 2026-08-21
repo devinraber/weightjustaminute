@@ -68,6 +68,7 @@ export default function PhotoLogPage() {
         proteinG: item.proteinG,
         carbsG: item.carbsG,
         fatG: item.fatG,
+        sugarG: item.sugarG,
       },
       source: "ai_estimate",
       loggedAt: new Date().toISOString(),
@@ -134,8 +135,8 @@ export default function PhotoLogPage() {
                   <p className="font-medium">{item.name}</p>
                   <p className="text-xs text-slate-400">
                     ~{Math.round(item.estimatedGrams)}g · {Math.round(item.calories)} kcal · P
-                    {Math.round(item.proteinG)}g · C{Math.round(item.carbsG)}g · F{Math.round(item.fatG)}g ·{" "}
-                    {item.confidence} confidence
+                    {Math.round(item.proteinG)}g · C{Math.round(item.carbsG)}g · F{Math.round(item.fatG)}g · S
+                    {Math.round(item.sugarG)}g · {item.confidence} confidence
                   </p>
                 </div>
                 <button

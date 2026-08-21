@@ -25,8 +25,9 @@ function sumTotals(meals: DailyLog["meals"]): NutritionPer100gScaled {
         proteinG: acc.proteinG + entry.nutrition.proteinG,
         carbsG: acc.carbsG + entry.nutrition.carbsG,
         fatG: acc.fatG + entry.nutrition.fatG,
+        sugarG: acc.sugarG + entry.nutrition.sugarG,
       }),
-      { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+      { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, sugarG: 0 },
     );
 }
 
